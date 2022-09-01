@@ -18,7 +18,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final AppUserServiceImpl appUserServiceImpl;
     private final ConfirmationTokenServiceImpl confirmationTokenServiceImpl;
 
-    
+    @Override
     public String register(RegistrationRequest registrationRequest) {
 
         String token = appUserServiceImpl.signUpUser(
@@ -45,7 +45,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         return "http://localhost:9090/api/v1/registration/confirm?token=" + token;
     }
 
-    
+    @Override
     @Transactional
     public String confirmToken(String token) {
         // search for the user token
