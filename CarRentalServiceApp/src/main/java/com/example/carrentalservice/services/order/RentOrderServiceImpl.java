@@ -28,7 +28,8 @@ public class RentOrderServiceImpl implements RentOrderService {
     private final CarServiceImpl carServiceImpl;
     private final RentOrderRepository rentOrderRepository;
     private final RentOrderItemRepository rentOrderItemRepository;
-    @Override
+    
+    
     public void addOrder(RentOrder order, @NotNull List<Long> carsId) {
 
         Long orderId = rentOrderRepository.save(order).getOrderId();
@@ -42,7 +43,7 @@ public class RentOrderServiceImpl implements RentOrderService {
         }
     }
 
-    @Override
+    
     public String createOrder (String username, RentOrderRequest rentOrderRequest, Long [] carId) {
 
         String message;
@@ -88,35 +89,36 @@ public class RentOrderServiceImpl implements RentOrderService {
         return message;
     }
 
-    @Override
+    
     public List<RentOrder> getUSerOrders(Long userId) {
 
         return rentOrderRepository.findAllByUserId(userId);
     }
 
-    @Override
+    
     public RentOrder getOrderById(Long orderId) {
         return rentOrderRepository.findByOrderId(orderId);
     }
 
-    @Override
+    
     public List<RentOrder> getAllOrders() {
         return rentOrderRepository.findAllOrders();
     }
 
+    
     //update order status requested or canceled
-    @Override
     public String updateOrderStatus(Long orderId, String status) {
 
         rentOrderRepository.updateOrderStatus(orderId, status);
         return "the selected order updated successfully.";
     }
-    @Override
+    
+   
     public List<RentOrder> getOrdersByStatus(String status) {
        return rentOrderRepository.findByOrderStatus(status);
     }
 
-    @Override
+    
     public List<Car> getOrderItems(Long orderId) {
         return rentOrderRepository.getOrderItems(orderId);
     }
