@@ -1,16 +1,12 @@
 package com.example.carrentalservice.services.registration;
 
-import com.example.carrentalservice.configuration.exception.ApiRequestException;
-import com.example.carrentalservice.configuration.security.PasswordEncoder;
+import com.example.carrentalservice.exception.ApiRequestException;
 import com.example.carrentalservice.models.entities.ConfirmationToken;
 import com.example.carrentalservice.services.token.ConfirmationTokenServiceImpl;
 import com.example.carrentalservice.models.entities.AppUser;
 import com.example.carrentalservice.models.handelers.RegistrationRequest;
 import com.example.carrentalservice.services.user.AppUserServiceImpl;
 import lombok.AllArgsConstructor;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -26,15 +22,16 @@ public class RegistrationServiceImpl implements RegistrationService {
     public String register(RegistrationRequest registrationRequest) {
 
         String token = appUserServiceImpl.signUpUser(
-
                 new AppUser(
-                        registrationRequest.getFirstName(),
-                        registrationRequest.getLastName(),
-                        registrationRequest.getEmail(),
-                        registrationRequest.getUserName(),
-                        registrationRequest.getPassword()//,
-                        //registrationRequest.getRoles()
-                ));
+                registrationRequest.getFirstName(),
+                registrationRequest.getLastName(),
+                registrationRequest.getEmail(),
+                registrationRequest.getUserName(),
+                registrationRequest.getPassword()
+                ), registrationRequest.getRoles());
+
+
+
 
 //        System.out.println(registrationRequest.getRoles()+ "This is the role");
 //        UserDetails user = User.builder()

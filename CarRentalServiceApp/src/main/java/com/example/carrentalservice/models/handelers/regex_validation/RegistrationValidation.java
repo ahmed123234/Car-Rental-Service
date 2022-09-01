@@ -1,8 +1,10 @@
 package com.example.carrentalservice.models.handelers.regex_validation;
 
-import com.example.carrentalservice.configuration.exception.ApiRequestException;
+import com.example.carrentalservice.exception.ApiRequestException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Nullable;
 
 @Service
 @AllArgsConstructor
@@ -11,7 +13,7 @@ public class RegistrationValidation {
     private final PasswordValidator passwordValidator;
     private final UsernameValidator usernameValidator;
 
-    public void validateUserInfo(String email, String username, String password) {
+    public void validateUserInfo(@Nullable String email, @Nullable String username, String password) {
         // first we want to check if email, userName and password is valid or not
         boolean isValidEmail = emailValidator.test(email);
         boolean isValidPassword = passwordValidator.test(password);

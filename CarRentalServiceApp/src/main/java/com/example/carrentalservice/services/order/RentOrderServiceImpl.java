@@ -1,5 +1,6 @@
 package com.example.carrentalservice.services.order;
 
+import com.example.carrentalservice.models.entities.Car;
 import com.example.carrentalservice.models.entities.RentOrder;
 import com.example.carrentalservice.models.entities.RentOrderItem;
 import com.example.carrentalservice.models.handelers.RentOrderRequest;
@@ -8,18 +9,19 @@ import com.example.carrentalservice.repositories.RentOrderRepository;
 import com.example.carrentalservice.services.car.CarServiceImpl;
 import com.example.carrentalservice.services.user.AppUserServiceImpl;
 import lombok.AllArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+
 @Service
 @AllArgsConstructor
+@Slf4j
 public class RentOrderServiceImpl implements RentOrderService {
 
     private final AppUserServiceImpl appUserServiceImpl;
@@ -27,12 +29,12 @@ public class RentOrderServiceImpl implements RentOrderService {
     private final RentOrderRepository rentOrderRepository;
     private final RentOrderItemRepository rentOrderItemRepository;
     @Override
-    public void addOrder(RentOrder order, List<Long> carsId) {
+    public void addOrder(RentOrder order, @NotNull List<Long> carsId) {
 
         Long orderId = rentOrderRepository.save(order).getOrderId();
 
         for (Long carId : carsId) {
-            if(carServiceImpl.getCar(carId).getCarStatus().equals("available")) {
+            if(carServiceImpl.getCar(carId).getCarStatus().equalsIgnoreCase("available")) {
                 carServiceImpl.updateCarStatus(carId, "rented");
                 RentOrderItem item = new RentOrderItem(orderId, carId);
                 rentOrderItemRepository.save(item);
@@ -41,44 +43,48 @@ public class RentOrderServiceImpl implements RentOrderService {
     }
 
     @Override
-    public String createOrder (Principal principal, RentOrderRequest rentOrderRequest, Long [] carId) {
+    public String createOrder (String username, RentOrderRequest rentOrderRequest, Long [] carId) {
 
-        UserDetails loginUser = (UserDetails) ((Authentication) principal).getPrincipal();
         String message;
         List<Long> carsId = new ArrayList<>();
         Collections.addAll(carsId, carId);
 
-        RentOrder rentOrder = new RentOrder();
-        rentOrder.setOrderStatus("requested");
-        rentOrder.setOrderDriver(rentOrderRequest.getOrderDriver());
-        rentOrder.setOrderStartDate(rentOrderRequest.getOrderStartDate());
-        rentOrder.setOrderFinishDate(rentOrderRequest.getOrderFinishDate());
-        rentOrder.setUserId(appUserServiceImpl.getUserId(loginUser.getUsername()));
+                RentOrder rentOrder = new RentOrder();
+                rentOrder.setOrderStatus("requested");
+                rentOrder.setOrderDriver(rentOrderRequest.getOrderDriver());
+                rentOrder.setOrderStartDate(rentOrderRequest.getOrderStartDate());
+                rentOrder.setOrderFinishDate(rentOrderRequest.getOrderFinishDate());
+                rentOrder.setUserId(appUserServiceImpl.getUserId(username));
+                System.out.println(username + "username of the user want the order");
 
-        long days = ChronoUnit.DAYS.between(rentOrder.getOrderStartDate().toLocalDate(),
-                rentOrder.getOrderFinishDate().toLocalDate());
+                long days = ChronoUnit.DAYS.between(rentOrder.getOrderStartDate().toLocalDate(),
+                        rentOrder.getOrderFinishDate().toLocalDate());
 
-        if (days >= 1) {
-            long bill = 0;
+                if (days >= 1) {
+                    long bill = 0;
 
-            // calculate the price
-            for (Long car : carsId) {
-                if(carServiceImpl.getCar(car).getCarStatus().equals("available")) {
-                    bill = bill + (carServiceImpl.getCar(car).getCarCost()) * days;
+                    // calculate the price
+                    for (Long car : carsId) {
+                        if(carServiceImpl.getCar(car).getCarStatus().equalsIgnoreCase("available")) {
+                            bill = bill + (carServiceImpl.getCar(car).getCarCost()) * days;
+                        }
+                    }
+                    if (bill!=0 && rentOrder.getOrderDriver().equals("yes")) {
+                        bill = bill + (days * 35);
+                    }
+                    if (bill == 0) {
+                        log.info("Thanks {} for using the app. unlucky, the selected cars is rented recently. ",
+                                username);
+                        return "The selected Cars is not available right now, please try again later";
+                    }
+                    rentOrder.setOrderBill((int) bill);
+                    addOrder(rentOrder, carsId);
+                    log.info("Thanks {}, your order created successfully", username);
+                    message = "Order created successfully";
+                }else {
+                    log.info("Thanks {}, unlucky, the entered duration is invalid", username);
+                    message = "Invalid rent duration";
                 }
-            }
-            if (bill!=0 && rentOrder.getOrderDriver().equals("yes")) {
-                bill = bill + (days * 35);
-            }
-            if (bill == 0)
-                return "The selected Cars is not available right now, please try again later";
-
-            rentOrder.setOrderBill((int) bill);
-            addOrder(rentOrder, carsId);
-            message = "Order created successfully";
-        }else
-            message = "Invalid rent duration";
-
         return message;
     }
 
@@ -95,7 +101,7 @@ public class RentOrderServiceImpl implements RentOrderService {
 
     @Override
     public List<RentOrder> getAllOrders() {
-        return rentOrderRepository.findAll();
+        return rentOrderRepository.findAllOrders();
     }
 
     //update order status requested or canceled
@@ -108,5 +114,10 @@ public class RentOrderServiceImpl implements RentOrderService {
     @Override
     public List<RentOrder> getOrdersByStatus(String status) {
        return rentOrderRepository.findByOrderStatus(status);
+    }
+
+    @Override
+    public List<Car> getOrderItems(Long orderId) {
+        return rentOrderRepository.getOrderItems(orderId);
     }
 }

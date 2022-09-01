@@ -56,32 +56,36 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .hasAuthority("ROLE_ADMIN");
         http.authorizeRequests().antMatchers(DELETE, "/api/v*/users/delete/**")
                 .hasAuthority("ROLE_ADMIN");
-        http.authorizeRequests().antMatchers(PUT, "/api/users/update/password/**")
+
+        http.authorizeRequests().antMatchers(DELETE, "/api/v*/users/account/delete/**")
+                .hasAuthority("ROLE_ADMIN");
+
+        http.authorizeRequests().antMatchers(PUT, "/api/v*/users/update/password/**")
                 .hasAnyAuthority("ROLE_ADMIN", "ROLE_USER", "ROLE_MANAGER");
 
-        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/**")
-                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
-
-        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/get/**")
-                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_CUSTOMER");
-
-        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/available/**")
-                .hasAuthority("ROLE_CUSTOMER");
-
-        http.authorizeRequests().antMatchers(POST, "/api/v*/cars/add/**")
-                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
-
-        http.authorizeRequests().antMatchers(PUT, "/api/v*/cars/update/**")
-                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
-
-        http.authorizeRequests().antMatchers(DELETE, "/api/v*/cars/delete/**")
-                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
+//        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/**")
+//                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
+//
+//        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/get/**")
+//                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_CUSTOMER");
+//
+//        http.authorizeRequests().antMatchers(GET, "/api/v*/cars/available/**")
+//                .hasAuthority("ROLE_CUSTOMER");
+//
+//        http.authorizeRequests().antMatchers(POST, "/api/v*/cars/add/**")
+//                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
+//
+//        http.authorizeRequests().antMatchers(PUT, "/api/v*/cars/update/**")
+//                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
+//
+//        http.authorizeRequests().antMatchers(DELETE, "/api/v*/cars/delete/**")
+//                .hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER");
 
 
 
         http.authorizeRequests().anyRequest().authenticated();
-//        http.httpBasic().and().formLogin().and().oauth2Login().userInfoEndpoint().userService(oAuth2Service)
-//                .and().successHandler(oAuth2LoginSuccessHandler);
+        http.httpBasic().and().formLogin().and().oauth2Login().userInfoEndpoint().userService(oAuth2Service)
+                .and().successHandler(oAuth2LoginSuccessHandler);
 
         http.addFilter(customAuthenticationFilter);
         http.addFilterBefore(new CustomAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);

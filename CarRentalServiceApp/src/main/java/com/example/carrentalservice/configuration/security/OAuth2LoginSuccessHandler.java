@@ -1,7 +1,5 @@
 package com.example.carrentalservice.configuration.security;
 
-import com.example.carrentalservice.configuration.security.AuthenticationProvider;
-import com.example.carrentalservice.configuration.security.CustomOAuth2;
 import com.example.carrentalservice.models.entities.AppUser;
 import com.example.carrentalservice.repositories.AppUserRepository;
 import com.example.carrentalservice.services.user.AppUserServiceImpl;

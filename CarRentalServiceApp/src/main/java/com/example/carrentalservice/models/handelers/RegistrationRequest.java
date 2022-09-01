@@ -17,7 +17,5 @@ public class RegistrationRequest {
     private final String userName;
     private final String password;
     private final String [] roles;
-
-
 }
 

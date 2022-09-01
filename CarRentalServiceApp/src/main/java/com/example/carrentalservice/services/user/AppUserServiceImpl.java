@@ -1,26 +1,30 @@
 package com.example.carrentalservice.services.user;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.carrentalservice.models.entities.AppUser;
 import com.example.carrentalservice.models.entities.UserRole;
 import com.example.carrentalservice.models.handelers.RegistrationRequest;
+
 import com.example.carrentalservice.models.handelers.regex_validation.RegistrationValidation;
 import com.example.carrentalservice.repositories.AppUserRepository;
 import com.example.carrentalservice.configuration.security.AuthenticationProvider;
-import com.example.carrentalservice.configuration.exception.ApiRequestException;
+import com.example.carrentalservice.exception.ApiRequestException;
 import com.example.carrentalservice.configuration.security.PasswordEncoder;
 import com.example.carrentalservice.models.entities.ConfirmationToken;
 import com.example.carrentalservice.repositories.UserRoleRepository;
 import com.example.carrentalservice.services.token.ConfirmationTokenServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -33,6 +37,8 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
     private final UserRoleRepository userRoleRepository;
     private final RegistrationValidation registrationValidation;
     private final static String USER_NOT_FOUND_MESSAGE = "User with email %s not found!";
+    final String CREDENTIALS_ERROR_MESSAGE = "No such user with the given credentials %s";
+
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final ConfirmationTokenServiceImpl confirmationTokenServiceImpl;
@@ -80,12 +86,18 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
     }
 
     @Override
-    public String signUpUser(AppUser appUser) {
+    public String signUpUser(AppUser appUser, String[] roles) {
 
         checkEmail(appUser.getEmail());
         checkUsername(appUser.getUsername());
 
         saveUser(appUser);
+
+        for (String role: roles
+        ) {
+            appUser.getRoles().add(addRoleToUser(appUser.getEmail(), role));
+        }
+
 
         // Generate a random token
         String token = UUID.randomUUID().toString();
@@ -106,30 +118,45 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
            log.error("Error enabling Email: {} ", email);
     }
 
-    public Optional<List<AppUser>> getByUserRole(UserRole userRole) {
+    @Override
+    public Optional<List<AppUser>> getByUserRole(String userRole) {
 
-        boolean isFound = appUserRepository.findByRoles(userRole).isPresent();
+        UserRole role = userRoleRepository.findByName(userRole);
+        boolean isFound = appUserRepository.findByRoles(role).isPresent();
 
         if(!isFound){
             log.info("No such users with role {} ", userRole);
             throw new ApiRequestException("No such users with the role " + userRole);
         }
         log.info("There is user/s with role {} ", userRole);
-        return appUserRepository.findByRoles(userRole);
+        return appUserRepository.findByRoles(role);
     }
     @Override
     public String getUser(String username, String password) {
+        String encodedPassword = appUserRepository.getEncodedPassword(username);
 
-        final String USER_NOT_FOUND_MESSAGE = "No such user with the given credentials";
+        boolean isPasswordMatch = passwordEncoder.bCryptPasswordEncoder().matches(password, encodedPassword);
 
-        boolean isFound = appUserRepository.findByUsernameAndPassword(username, password).isPresent();
-
-        if(isFound) {
+        if(isPasswordMatch) {
             log.info("The user: {} is a valid user", username);
             return "The user with username :" + username + " and password: " + password + " is valid";
         }
-        log.error( USER_NOT_FOUND_MESSAGE + "{} & {}", username, password);
-        throw  new ApiRequestException(String.format(USER_NOT_FOUND_MESSAGE, username));
+        log.error( CREDENTIALS_ERROR_MESSAGE + "{} & {}", username, password);
+        throw  new ApiRequestException(String.format(CREDENTIALS_ERROR_MESSAGE, username));
+    }
+
+    @Override
+    public String getUserOrderCount(String username) {
+
+        boolean isFound = appUserRepository.findByUsername(username).isPresent();
+
+        if(isFound) {
+            log.info("The user: {} is a valid user", username);
+            return "user: "+ username + " has " + appUserRepository.getUserOrdersCount(username) +
+                    " orders till present";
+        }
+        log.error("no such user with name {} found", username);
+        throw  new ApiRequestException(String.format("no such user with name: " + username + " found"));
     }
 
     @Override
@@ -172,34 +199,48 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
     }
 
     @Override
-    public String  changeStatus(Long userId, boolean status) {
+    public String  changeStatus(String username, String status) {
         String statusDescription;
-        String username = (appUserRepository.findById(userId).isPresent())? appUserRepository.
-                findById(userId).get().getUsername(): " ";
-        if (username != null) {
-            log.info("user with id: {} is valid and his/ her name is: {}, " +
-                            "the changing status process is in progress", userId, username);
+        AppUser user = appUserRepository.findAppUserByUsername(username);
+
+        if (user != null) {
+            log.info("user with name: {} is valid , " +
+                            "the changing status process is in progress",  username);
         }
         else {
-            log.info("no such user with id: {} " +
-                    "the changing status process is failed", userId);
-            throw  new ApiRequestException("no such user with userId: " + userId +
-                    "the changing status process is failed");
+            log.info("no such user with name: {} " +
+                    " the changing status process is failed", username);
+            throw  new ApiRequestException("no such user with username: " + username +
+                    " the changing status process is failed");
         }
-        appUserRepository.UpdateStatus(userId, status);
+        boolean state = status.equalsIgnoreCase("enabled");
+        appUserRepository.UpdateStatus(username, state);
 
-        if (status) {
+        if (state) {
                 statusDescription = "Enabled";
         } else statusDescription = "Disabled";
         log.info("User {} is {} successfully", username, statusDescription);
-        return "The user with Id " + userId + "is successfully " + statusDescription;
+        return "The user with username " + username + " is successfully " + statusDescription;
     }
 
 
     @Override
+    public String deleteUser (String username) {
+
+        int isAffected = appUserRepository.deleteUser(username);
+        if(isAffected == 0) {
+            log.error("no such user with username : {}, the deletion is ignored.", username);
+            throw new ApiRequestException(" The user with username: " + username + "not found in the database.\n" +
+                    "deletion is ignored");
+        }
+        log.info("user with username: {} is deleted successfully", username);
+        return "The user with username: " + username + " is successfully deleted";
+    }
+
+    @Override
     public String deleteUser (Long userId) {
 
-        int isAffected = appUserRepository.deleteUser(userId);
+        int isAffected = appUserRepository.deleteUserByID(userId);
         if(isAffected == 0) {
             log.error("ni such user with id : {}, the deletion is ignored.", userId);
             throw new ApiRequestException(" The user with id: " + userId + "not found in the database.\n" +
@@ -244,27 +285,32 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
         return appUserRepository.findByUsername(username).get().getUserId();
     }
 
-
     @Override
-    public String updateUserPassword(Principal principal, String password) {
+    public String updateUserPassword(@NotNull String username, @NotNull String password) {
 
-        UserDetails loginUser = (UserDetails) ((Authentication) principal).getPrincipal();
-        appUserRepository.updateUserPassword(loginUser.getUsername(), password);
-        log.info("Update password to user: {} to be {}", loginUser.getUsername(), password);
-        return "Password updated successfully";
+        registrationValidation.validateUserInfo(null, username, password);
+        String encodedPassword = passwordEncoder.bCryptPasswordEncoder().encode(password);
+
+        System.out.println("new password is " + password);
+        int affected = appUserRepository.updateUserPassword(username, encodedPassword);
+
+        if (affected == 1) {
+            log.info("Update password to user: {} to be {}", username, password);
+            return "Password updated successfully";
+        }else {
+            log.error("error updating password for user {}", username);
+            return "Password updating failed";
+        }
     }
 
 
     @Override
-    public String[] getUserRole(Principal principal) {
+    public String[] getUserRole(String username) {
 
-        UserDetails loginUser = (UserDetails) ((Authentication) principal).getPrincipal();
-//        List<GrantedAuthority> authorities = (List<GrantedAuthority>) loginUser.getAuthorities();
-//        return authorities.get(0).getAuthority();
-
+        AppUser user = appUserRepository.findAppUserByUsername(username);
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        loginUser.getAuthorities().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getAuthority())));
+        user.getAuthorities().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getAuthority())));
         System.out.println(authorities.get(0).getAuthority());
 
         String [] roles = new String[authorities.size()];
@@ -272,11 +318,11 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
         for (int i =0; i < authorities.size(); i++) {
 
             roles[i] = authorities.get(i).getAuthority();
+            System.out.println(roles[i]);
         }
 
-        System.out.println(roles);
+        System.out.println(Arrays.toString(roles));
         return roles;
-
     }
 
     @Override
@@ -310,5 +356,17 @@ public class AppUserServiceImpl implements UserDetailsService, AppUserService {
         user.getRoles().add(role);
         log.info("Adding role {} to user {}", roleName, email);
         return  role;
+    }
+
+    @Override
+    public String handleAuthorizationHeader(@NotNull String authorizationHeader) {
+
+        String accessToken = authorizationHeader.substring("Bearer ".length());
+        Algorithm algorithm = Algorithm.HMAC256("secret".getBytes());
+        JWTVerifier verifier = JWT.require(algorithm).build();
+        DecodedJWT decodedJWT = verifier.verify(accessToken);
+        String username = decodedJWT.getSubject();
+        System.out.println(username + "  +++++ this is username");
+        return username;
     }
 }

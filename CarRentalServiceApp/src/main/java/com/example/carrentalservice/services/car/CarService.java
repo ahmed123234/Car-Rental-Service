@@ -14,21 +14,25 @@ public interface CarService {
 
     String updateCarCost(Long carId, Long carCost);
 
-    String updatePrices(double coefficient);
+    String updatePrices(Long coefficient);
 
     String deleteCarById(Long carId);
 
-    String updateCarFeatures(Long carId, String carModel, String carClass, String carMark, Long carCost);
+    String updateCarMark(Long carId, String carModel, String carMark);
+
+    String updateCarFeatures(Long carId,  String carModel, String carClass, String carMark, Long carCost);
 
     String updateCarFeatures(Long carId, String carModel, String carClass, String carMark);
 
     String updateCarFeatures(Long carId,  String carModel, String carClass);
 
+    String updateCarFeatures(Long carId,  String carModel);
+
     String updateCarStatus(Long carId, String status);
 
     List<Car> getAvailableCars(String status);
 
-    List<Car> getCarsByCost(Long cost);
+    List<Car> getCarsByCost(Long cost, String operation);
 
     List<Car> getCarsByClass(String carClass);
 

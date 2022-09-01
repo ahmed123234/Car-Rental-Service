@@ -16,5 +16,4 @@ public class RestResponse {
     private ObjectNode data;
     private HttpStatus status;
     private ZonedDateTime zonedDateTime;
-
 }

@@ -3,7 +3,6 @@ package com.example.carrentalservice.models.handelers;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
 import java.sql.Date;
 
 @AllArgsConstructor
@@ -14,5 +13,4 @@ public class RentOrderRequest {
     private String orderDriver;
     private Date orderStartDate;
     private Date orderFinishDate;
-
 }
