@@ -1,0 +1,12 @@
+type Query {
+    cars: Car
+}
+
+
+type Car {
+    id: ID!
+    class: String
+    mark: String
+    model: String
+    cost: Float
+}
