@@ -1,0 +1,33 @@
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+  port: 9090
+
+spring:
+  datasource:
+    password: 201712455@Asg
+    url: jdbc:mysql://localhost:3306/app_schema
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5Dialect
+        format_sql: true
+    show_sql: true
+
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 971806293101-cvf2rqg97ogr1relhq896eqd0qoka1rq.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - email
+              - profile
+
